@@ -5,11 +5,11 @@ Here’s the **updated full `README.md`** with the corrected project structure f
 ````markdown
 # 📈 autotrade-python
 
-A modular, async cryptocurrency trading pipeline built in Python.
-
-This project connects to crypto exchanges via WebSocket (starting with Coinbase), 
-collects and stores real-time trade data in PostgreSQL,
-and is structured for future strategy execution and analytics.
+autotrade-python is a modular, async crypto trading pipeline designed for real-time data ingestion,
+strategy prototyping, and backtesting. Built with aiohttp, asyncpg, and PostgreSQL, it ingests 
+live trade data via WebSocket, stores it for analysis, and enables simplified strategy backtesting —
+all in a clean, testable architecture. Ideal for developers building automated trading systems or
+exploring time-series trading strategies.
 
 ---
 
