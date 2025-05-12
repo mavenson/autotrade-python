@@ -24,14 +24,14 @@ class Database:
             await self.pool.close()
             logger.info("Database connection pool closed.")
 
-    async def insert_trade(self, symbol: str, price: float, volume: float, timestamp: str):
+    async def insert_trade(self, symbol: str, price: float, volume: float, timestamp: str, raw_message: dict = None):
         query = """
-        INSERT INTO trades (symbol, price, volume, timestamp)
-        VALUES ($1, $2, $3, $4)
+        INSERT INTO trades (symbol, price, volume, timestamp, raw_message)
+        VALUES ($1, $2, $3, $4, $5)
         """
         try:
             async with self.pool.acquire() as conn:
-                await conn.execute(query, symbol, price, volume, timestamp)
+                await conn.execute(query, symbol, price, volume, timestamp, raw_message)
         except Exception as e:
             logger.exception(f"Failed to insert trade for {symbol} at {price}.")
             raise
