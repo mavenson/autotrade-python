@@ -7,7 +7,9 @@ Here’s the **updated full `README.md`** with the corrected project structure f
 
 A modular, async cryptocurrency trading pipeline built in Python.
 
-This project connects to crypto exchanges via WebSocket (starting with Coinbase), collects and stores real-time trade data in PostgreSQL, and is structured for future strategy execution and analytics.
+This project connects to crypto exchanges via WebSocket (starting with Coinbase), 
+collects and stores real-time trade data in PostgreSQL,
+and is structured for future strategy execution and analytics.
 
 ---
 
