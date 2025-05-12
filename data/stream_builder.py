@@ -3,7 +3,7 @@ import aiohttp
 import asyncio
 import gzip
 
-class EchoWebSocket:
+class DataStreamBuilder:
     def __init__(self, cli_session, ws_link, rqst_msg, stream_id):
         self._rqst_msg = rqst_msg
         self._ws_link = ws_link
@@ -83,25 +83,7 @@ def package_rsp(rsp, stream_id):
     # Call PackageRsp Class
 
 
-async def main():
-    session = aiohttp.ClientSession()
-    rqst_list_demo = [
-                      # ['bf', 'trades', 'tBTCUSD', 'btc-usd', 'trades'],
-                      # ['bf', 'ticker', 'tBTCUSD','btc-usd','ticker'],
-                      # ['bf', 'book', 'tBTCUSD', 'btc-usd','book'],
-                      ['cb', 'full', 'BTC-USD', 'btc-usd','full']
-                      # ['h', 'market.ethbtc.kline.1min', 'id63', 'h-btcusd'],
-                      # ['b', 'ltcbtc@trade', None, 'b-btcusd']
-                     ]
-    tasks = []
-    for e in rqst_list_demo:
-        wrapped = rqst_wrapper(e)
-        tasks.append(EchoWebSocket(session, wrapped[0], wrapped[1], wrapped[2]).open_link())
-    await asyncio.wait(tasks)
 
-if __name__ == '__main__':
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(main())
 
 
 # {"sub": "market.ethbtc.kline.1min","id": "id63"}
