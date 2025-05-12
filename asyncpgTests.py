@@ -2,16 +2,11 @@ import asyncio
 import asyncpg
 import json
 
-# async def run():
-#     conn = await asyncpg.connect(user='mavenson', password='mast3rofdisast3r',
-#                                  database='mavenson', host='127.0.0.1')
-#     values = await conn.fetch('''SELECT * FROM mave_table''')
-#     print(values)
-#     await conn.close()
+
 
 async def main():
-    conn = await asyncpg.connect(user='mavenson', password='mast3rofdisast3r',
-                                 database='mavenson', host='127.0.0.1')
+    conn = await asyncpg.connect(user='', password='',
+                                 database='', host='')
 
     try:
         def _encoder(value):
