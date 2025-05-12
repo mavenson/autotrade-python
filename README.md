@@ -142,6 +142,3 @@ These messages are stored in PostgreSQL for further analysis or strategy executi
 
 MIT — see [LICENSE](./LICENSE)
 
-```
-
-```
