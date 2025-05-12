@@ -5,7 +5,7 @@ Here’s the **updated full `README.md`** with the corrected project structure f
 ````markdown
 # 📈 autotrade-python
 
-autotrade-python is a modular, async crypto trading pipeline designed for real-time 
+**autotrade-python** is a modular, async crypto trading pipeline designed for real-time 
 data ingestion, strategy prototyping, and backtesting. Built with aiohttp, asyncpg, 
 and PostgreSQL, it ingests live trade data via WebSocket, stores it for analysis, 
 and enables simplified strategy backtesting — all in a clean, testable architecture. 
