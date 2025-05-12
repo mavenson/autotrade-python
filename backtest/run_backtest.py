@@ -1,5 +1,5 @@
 import asyncio
-from core.db_api import fetch_all_trades  # Assumes you have this
+from storage.db_api import fetch_all_trades  # Assumes you have this
 from backtest.strategy import moving_average_crossover
 from backtest.portfolio import BacktestPortfolio
 
