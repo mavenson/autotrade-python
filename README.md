@@ -144,5 +144,4 @@ MIT — see [LICENSE](./LICENSE)
 
 ```
 
-Let me know if you'd like a shield badge header or GitHub Actions CI badge added too!
 ```
