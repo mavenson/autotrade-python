@@ -1,89 +1,52 @@
-import json
+# data/stream_builder.py
+
 import aiohttp
 import asyncio
-import gzip
+import json
+import logging
 
 class DataStreamBuilder:
-    def __init__(self, cli_session, ws_link, rqst_msg, stream_id):
-        self._rqst_msg = rqst_msg
-        self._ws_link = ws_link
-        self._cli_session = cli_session
-        self._ws = None
-        self._ws_connect = None
-        self._stream_id = stream_id
+    def __init__(self, url: str, products: list[str]):
+        self.url = url
+        self.products = products
+        self.session = None
+        self.ws = None
+        self.logger = logging.getLogger(__name__)
 
-    async def open_link(self):
-        async with self._cli_session.ws_connect(self._ws_link) as self._ws:
-            print(self._rqst_msg)
-            if self._rqst_msg == None:
-                async for msg in self._ws:
-                    msg_dc = json.loads(msg.data)
-                    package_rsp(msg_dc, self._stream_id)
-            elif self._ws_link[10:15] == 'huobi':
-                await self._ws.send_str(self._rqst_msg)
-                async for msg in self._ws:
-                    msg_dc = json.loads(gzip.decompress(msg.data).decode('utf-8'))
-                    if 'ping' in msg_dc:
-                        pong = str(msg_dc['ping'])
-                        await self._ws.send_str(pong)
-                        await self._ws.send_str(self._rqst_msg)
-                    else:
-                        package_rsp(msg_dc, self._stream_id)
-            else:
-                await self._ws.send_str(self._rqst_msg)
-                async for msg in self._ws:
-                    msg_dc = json.loads(msg.data)
-                    package_rsp(msg_dc, self._stream_id)
+    async def connect(self):
+        self.session = aiohttp.ClientSession()
+        self.ws = await self.session.ws_connect(self.url)
+        await self.subscribe()
 
-    async def close_link(self):
-        await self._ws.close()
+    async def subscribe(self):
+        msg = json.dumps({
+            "type": "subscribe",
+            "channels": [{
+                "name": "matches",
+                "product_ids": self.products
+            }]
+        })
+        await self.ws.send_str(msg)
+        self.logger.info(f"Subscribed to: {self.products}")
 
-    async def db_daemon(self):
-        None
+    async def receive_messages(self, handler):
+        async for msg in self.ws:
+            if msg.type == aiohttp.WSMsgType.TEXT:
+                data = json.loads(msg.data)
+                await handler(data)
+            elif msg.type == aiohttp.WSMsgType.ERROR:
+                self.logger.error("WebSocket error")
+                break
 
+    async def run(self, handler):
+        try:
+            await self.connect()
+            await self.receive_messages(handler)
+        finally:
+            await self.close()
 
-def rqst_wrapper(user_rqst):
-    wrapping = {
-                     'bf': ["wss://api.bitfinex.com/ws/2",
-                    {"event":"subscribe", "channel": None, "symbol": None}],
-
-                     'cb': ['wss://ws-feed.pro.coinbase.com',
-                    {'type':'subscribe', 'product_ids': None,'channels': None}],
-
-                     'h': ['wss://api.huobi.pro/ws',
-                    {'sub': None, 'id': None}],
-
-                     'b': ['wss://stream.binance.com:9443/ws/', None]
-               }
-    for e in wrapping:
-        if e == user_rqst[0]:
-            url = wrapping[e][0]
-            rqst = wrapping[e][1]
-            stream_id = [user_rqst[0], user_rqst[1], user_rqst[3]]
-            if e == 'bf':
-                rqst['channel'], rqst['symbol'] = user_rqst[1], user_rqst[2]
-                return [url, json.dumps(rqst), stream_id]
-            elif e == 'cb':
-                rqst['channels'], rqst['product_ids'] = [user_rqst[1]], [user_rqst[2]]
-                return [url, json.dumps(rqst), stream_id]
-            elif e == 'h':
-                rqst['sub'], rqst['id'] = user_rqst[1], user_rqst[2]
-                return [url, json.dumps(rqst), stream_id]
-            elif e == 'b':
-                return [url+str(user_rqst[1]), None, stream_id]
-
-def package_rsp(rsp, stream_id):
-    # Needs to determine where data is from and format it in a universal way for ProcessRsp to input
-    # Make Sure to Generate a Stream ID following a deducible convention such as 'cb-btcusd'
-    # logic to format response message from websocket for given exchange:
-    print(stream_id)
-    print(rsp)
-
-    # ProcessRsp.check_data()
-    # Call PackageRsp Class
-
-
-
-
-
-# {"sub": "market.ethbtc.kline.1min","id": "id63"}
+    async def close(self):
+        if self.ws:
+            await self.ws.close()
+        if self.session:
+            await self.session.close()

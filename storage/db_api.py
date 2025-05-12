@@ -1,7 +1,9 @@
+# storage/db_api.py
+
 import asyncpg
 import json
 
-class DbApi:
+class Database:
     def __init__(self):
         self._rsp_msg = None
         self._conn = None
