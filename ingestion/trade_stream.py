@@ -1,6 +1,5 @@
 # trade_stream.py
 
-import os
 import json
 import aiohttp
 import logging

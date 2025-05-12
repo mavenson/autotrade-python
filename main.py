@@ -2,7 +2,7 @@
 
 import asyncio
 from storage.db_api import Database
-from trade_stream import run_trade_stream
+from ingestion.trade_stream import run_trade_stream
 
 async def main():
     db = await Database.create()
