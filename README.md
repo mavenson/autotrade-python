@@ -1,8 +1,8 @@
-Absolutely! Here’s the full `README.md` content, ready to copy and paste into your file:
+Here’s the **updated full `README.md`** with the corrected project structure formatting using `text` fenced code blocks:
 
 ---
 
-```markdown
+````markdown
 # 📈 autotrade-python
 
 A modular, async cryptocurrency trading pipeline built in Python.
@@ -24,8 +24,7 @@ This project connects to crypto exchanges via WebSocket (starting with Coinbase)
 
 ## 📦 Project Structure
 
-```
-
+```text
 autotrade-python/
 ├── core/             # DB logic, shared core modules
 ├── utils/            # Helper functions (e.g., message parsing)
@@ -36,7 +35,6 @@ autotrade-python/
 ├── Dockerfile        # Container setup
 ├── requirements.txt
 └── README.md
-
 ````
 
 ---
@@ -49,7 +47,7 @@ autotrade-python/
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-````
+```
 
 **Start PostgreSQL** (you can use Docker if needed):
 
@@ -146,7 +144,5 @@ MIT — see [LICENSE](./LICENSE)
 
 ```
 
----
-
-Let me know if you want help creating a logo or badge-style headers for GitHub polish!
+Let me know if you'd like a shield badge header or GitHub Actions CI badge added too!
 ```
