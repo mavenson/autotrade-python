@@ -3,6 +3,7 @@
 import os
 import asyncpg
 import logging
+import json
 from typing import List, Dict
 from datetime import datetime
 
@@ -32,6 +33,8 @@ class Database:
     async def insert_trade(self, symbol: str, price: float, volume: float, timestamp: str | datetime, raw_message: dict = None):
         if isinstance(timestamp, str):
             timestamp = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))  # Converts 'Z' to UTC-aware datetime
+            if raw_message is not None and isinstance(raw_message, dict):
+                raw_message = json.dumps(raw_message)
         query = """
         INSERT INTO trades (symbol, price, volume, timestamp, raw_message)
         VALUES ($1, $2, $3, $4, $5)
