@@ -5,7 +5,8 @@ from storage.db_api import Database
 from ingestion.trade_stream import run_trade_stream
 
 async def main():
-    db = await Database.create()
+    db = Database()
+    await db.connect()
     try:
         await run_trade_stream(db)
     finally:

@@ -1,4 +1,3 @@
-version: '3.9'
 
 services:
   app:
@@ -20,8 +19,6 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./storage/sql/schema.sql:/docker-entrypoint-initdb.d/schema.sql
-    ports:
-      - "5432:5432"
 
 volumes:
   pgdata:
