@@ -4,6 +4,7 @@ import os
 import asyncpg
 import logging
 from typing import List, Dict
+from datetime import datetime
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -26,7 +27,11 @@ class Database:
             await self.pool.close()
             logger.info("Database connection pool closed.")
 
-    async def insert_trade(self, symbol: str, price: float, volume: float, timestamp: str, raw_message: dict = None):
+    
+
+    async def insert_trade(self, symbol: str, price: float, volume: float, timestamp: str | datetime, raw_message: dict = None):
+        if isinstance(timestamp, str):
+            timestamp = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))  # Converts 'Z' to UTC-aware datetime
         query = """
         INSERT INTO trades (symbol, price, volume, timestamp, raw_message)
         VALUES ($1, $2, $3, $4, $5)
