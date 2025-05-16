@@ -1,0 +1,25 @@
+# .gitignore
+
+# Environment variables
+.env
+
+# Python cache and build artifacts
+*.py[cod]
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Hupyter Notebooks checkpoints
+.ipynb_checkpoints
+
+# VSCode settings
+.vscode/
+
+#Docker stuff
+*.log
+docker-compose.override.yml
+
+# PostgeSQL volume
+pgdata/
+
