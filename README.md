@@ -1,147 +1,98 @@
-Here’s the **updated full `README.md`** with the corrected project structure formatting using `text` fenced code blocks:
+# Autotrade Python
 
----
-
-````markdown
-# 📈 autotrade-python
-
-autotrade-python is a modular, async crypto trading pipeline designed for real-time 
-data ingestion, strategy prototyping, and backtesting. Built with aiohttp, asyncpg, 
-and PostgreSQL, it ingests live trade data via WebSocket, stores it for analysis, 
-and enables simplified strategy backtesting — all in a clean, testable architecture. 
-Ideal for developers building automated trading systems or exploring time-series 
-trading strategies.
-
----
+A modular cryptocurrency trading system for learning, simulation, and (eventually) automated live trading.
 
 ## 🚀 Features
 
-- ✅ Async WebSocket stream using `aiohttp`
-- ✅ Real-time ingestion of trade data
-- ✅ PostgreSQL integration via `asyncpg`
-- ✅ Modular architecture for scalability
-- ✅ Structured for unit testing with `pytest`
-- 🔜 Strategy engine & REST API support
+- Real-time trade ingestion via WebSocket (Coinbase)
+- Asynchronous PostgreSQL storage
+- Interactive CLI client for backtesting
+- Moving average crossover strategy (with parameter tuning)
+- Modular backtest engine and portfolio simulator
+- Dockerized for reproducibility and separation of concerns
 
----
+## 📁 Project Structure
 
-## 📦 Project Structure
-
-```text
+```
 autotrade-python/
-├── core/             # DB logic, shared core modules
-├── utils/            # Helper functions (e.g., message parsing)
-├── ingestion/        # WebSocket or REST data streams
-├── storage/          # SQL schema and data persistence
-├── tests/            # Unit tests (pytest)
-├── main.py           # Entry point
-├── Dockerfile        # Container setup
-├── requirements.txt
+├── backtest/           # Strategy + simulation logic
+│   ├── strategy.py
+│   ├── portfolio.py
+│   └── run_backtest.py
+├── client/             # Terminal menu + query tools
+│   ├── client_menu.py
+│   └── services/
+│       └── queries.py
+├── ingestion/          # Live trade data stream
+│   └── trade_stream.py
+├── storage/            # Database write logic (ingestion)
+│   └── db_api.py
+├── storage/sql/        # SQL schema
+│   └── schema.sql
+├── .env                # DB credentials (not committed)
+├── Dockerfile          # Main app container
+├── Dockerfile.client   # CLI menu container
+├── docker-compose.yml
 └── README.md
-````
-
----
-
-## 🧪 Quick Start (Local)
-
-**Install dependencies:**
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
 ```
 
-**Start PostgreSQL** (you can use Docker if needed):
+## 🛠 Getting Started
+
+### 1. Clone and configure
 
 ```bash
-docker-compose up db  # if configured
+git clone https://github.com/mavenson/autotrade-python.git
+cd autotrade-python
+cp .env.example .env  # Add credentials
 ```
 
-**Run the app:**
-
-```bash
-python main.py
-```
-
-**Run tests:**
-
-```bash
-pytest
-```
-
----
-
-## 🐳 Docker
-
-Build and run in Docker:
-
-```bash
-docker build -t autotrade-python .
-docker run --rm autotrade-python
-```
-
-To run tests:
-
-```bash
-docker run --rm autotrade-python pytest
-```
-
----
-
-## 🔐 Environment Variables
-
-Create a `.env` file in the project root with the following:
+Edit `.env` to match:
 
 ```env
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=autotrade
-DB_USER=postgres
-DB_PASSWORD=yourpassword
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=securepass
+POSTGRES_DB=autotrade
+DATABASE_URL=postgresql://postgres:securepass@db:5432/autotrade
 ```
 
-> 💡 Tip: Add `.env` to `.gitignore` to avoid leaking credentials.
+### 2. Build and run the ingestion service
 
----
-
-## 📊 Example Trade Message (Parsed)
-
-```json
-{
-  "symbol": "BTC-USD",
-  "price": 42600.25,
-  "volume": 0.012,
-  "timestamp": "2025-05-12T15:10:21.000Z"
-}
+```bash
+docker-compose up -d --build
 ```
 
-These messages are stored in PostgreSQL for further analysis or strategy execution.
+This starts:
+- `trading-db` (PostgreSQL)
+- `data-ingestion` (WebSocket collector)
 
----
+### 3. Use the backtesting client
 
-## 🛠 Tech Stack
+```bash
+docker-compose build client-menu
+docker-compose run --rm client-menu
+```
 
-* Python 3.11+
-* aiohttp
-* asyncpg
-* PostgreSQL
-* pytest
-* Docker (optional)
+Menu options include:
+- Run backtest with custom parameters
+- View trade stats
+- Check available date ranges
 
----
+## 🧭 Roadmap
 
-## 📌 TODO
+- [x] Ingestion + storage
+- [x] Client menu interface
+- [x] Backtester with parameter input
+- [ ] Fee structure simulation
+- [ ] Order book model
+- [ ] Multi-exchange support (arbitrage)
+- [ ] Machine learning parameter tuning
+- [ ] Tax + compliance tracker
+- [ ] Live execution engine
 
-* [ ] REST ingestion module
-* [ ] Trading strategy execution
-* [ ] Config management
-* [ ] Logging and monitoring
-* [ ] Exchange adapter abstraction
+## ⚠️ Disclaimer
 
----
+This project is for educational purposes only. It does not constitute financial advice or an invitation to trade.
 
 ## 📄 License
 
-MIT — see [LICENSE](./LICENSE)
-
+MIT
