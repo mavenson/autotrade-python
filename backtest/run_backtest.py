@@ -1,13 +1,11 @@
-import asyncio
-from storage.db_api import fetch_all_trades  # Assumes you have this
+# backtest/run_backtest.py
+
 from backtest.strategy import moving_average_crossover
 from backtest.portfolio import BacktestPortfolio
 
 
-async def main():
-    trades = await fetch_all_trades("BTC-USD")  # Or whatever symbol
-    print(f"Loaded {len(trades)} trades")
-
+def run_backtest(trades):
+    print("Running backtest...")
     signals = moving_average_crossover(trades)
     portfolio = BacktestPortfolio()
 
@@ -17,11 +15,7 @@ async def main():
         elif action == "sell":
             portfolio.sell(price, timestamp)
 
-    final_value = portfolio.value(price)
+    final_value = portfolio.value(float(trades[-1]["price"]))
     print(f"Final portfolio value: ${final_value:.2f}")
-    for entry in portfolio.history:
-        print(entry)
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
+    print(f"\nExecuted {len(portfolio.history)} trades:")
+    print(f"Final portfolio value: ${final_value:.2f}")

@@ -1,12 +1,17 @@
 
 services:
-  app:
-    build: .
-    container_name: trading-app
+  data-ingestion:
+    build:
+      context: .
+    container_name: data-ingestion
+    command: python main.py
     restart: unless-stopped
-    env_file: .env
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
     depends_on:
       - db
+    volumes:
+      - .:/app
 
   db:
     image: postgres:15-alpine
@@ -19,6 +24,21 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./storage/sql/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+
+  client-menu:
+    container_name: client-menu
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    command: ["python", "client/client_menu.py"]
+    depends_on:
+      - db
+    volumes:
+      - .:/app
+    stdin_open: true
+    tty: true
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
 
 volumes:
   pgdata:

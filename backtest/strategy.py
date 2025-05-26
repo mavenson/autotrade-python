@@ -1,3 +1,5 @@
+# backtest/strategy.py
+
 from collections import deque
 from typing import List, Dict
 

@@ -46,22 +46,3 @@ class Database:
             logger.exception(f"Failed to insert trade for {symbol} at {price}.")
             raise
 
-    async def fetch_all_trades(symbol: str) -> List[Dict]:
-        conn = await asyncpg.connect(os.getenv("DATABASE_URL"))
-        rows = await conn.fetch("""
-            SELECT symbol, price, volume, timestamp
-            FROM trades
-            WHERE symbol = $1
-            ORDER BY timestamp ASC;
-        """, symbol)
-        await conn.close()
-
-        return [
-            {
-             "symbol": row["symbol"],
-             "price": str(row["price"]),
-             "volume": str(row["volume"]),
-             "timestamp": row["timestamp"].isoformat(),
-            }
-            for row in rows
-        ]
