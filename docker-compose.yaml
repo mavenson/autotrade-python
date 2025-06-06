@@ -40,5 +40,25 @@ services:
     environment:
       - DATABASE_URL=${DATABASE_URL}
 
+  rest-sync:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["python", "services/rest_sync.py"]
+    depends_on:
+      - db
+    env_file: .env
+    restart: unless-stopped
+
+  generated-sync:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["python", "services/gen_candle_sync.py"]
+    depends_on:
+      - db
+    env_file: .env
+    restart: unless-stopped
+
 volumes:
   pgdata:
