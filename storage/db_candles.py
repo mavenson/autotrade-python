@@ -2,18 +2,23 @@
 
 import asyncpg
 import os
+from datetime import datetime
 
 async def save_candles_to_db(symbol: str, interval: str, source: str, candles: list[dict]):
     conn = await asyncpg.connect(os.getenv("DATABASE_URL"))
     try:
         for c in candles:
+            ts = c["timestamp"]
+            if isinstance(ts, str):
+                ts = datetime.fromisoformat(ts)
+
             await conn.execute(
                 """
                 INSERT INTO candles (symbol, interval, timestamp, open, high, low, close, volume, source)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
                 ON CONFLICT (symbol, interval, timestamp, source) DO NOTHING
                 """,
-                symbol, interval, c["timestamp"], c["open"], c["high"], c["low"],
+                symbol, interval, ts, c["open"], c["high"], c["low"],
                 c["close"], c["volume"], source
             )
     finally:

@@ -5,6 +5,7 @@ import aiohttp
 import logging
 from storage.db_api import Database
 from utils.message_parser import parse_trade_message
+from datetime import datetime
 
 with open("config/streams.json", "r") as f:
     STREAM_CONFIG = json.load(f)
@@ -18,12 +19,13 @@ logger = logging.getLogger(__name__)
 async def handle_trade_message(msg: dict, db: Database):
     try:
         trade = parse_trade_message(msg)
+        ts = datetime.fromisoformat(trade["timestamp"].replace("Z", "+00:00"))
         await db.insert_trade(
             symbol=trade["symbol"],
             price=trade["price"],
             volume=trade["volume"],
-            timestamp=trade["timestamp"],
-            raw_message=msg
+            timestamp=ts,
+            raw_message=json.dumps(msg)
         )
     except Exception as e:
         logger.warning(f"Failed to handle trade message: {e}")
