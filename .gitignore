@@ -23,3 +23,5 @@ docker-compose.override.yml
 # PostgeSQL volume
 pgdata/
 
+__pycache__/
+*.py[cod]
