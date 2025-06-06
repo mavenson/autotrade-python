@@ -1,16 +1,15 @@
 # client/services/candle_utils.py
 
-import datetime
+import logging
+
+from datetime import datetime, timedelta
 from dateutil import parser as dtparser
 from collections import defaultdict
 from client.services.queries import fetch_all_trades
 from client.services.rest_candles import fetch_rest_candles
 from storage.db_candles import load_candles_from_db, save_candles_to_db
+from utils.time_utils import floor_timestamp_to_interval
 
-
-def floor_timestamp_to_interval(ts: datetime.datetime, interval: int) -> datetime.datetime:
-    """Round down timestamp to nearest interval (in seconds)."""
-    return ts - datetime.timedelta(seconds=ts.timestamp() % interval)
 
 def build_candles(trades: list, interval_seconds: int) -> list:
     """Aggregate trades into OHLCV candles based on interval in seconds."""
@@ -27,7 +26,7 @@ def build_candles(trades: list, interval_seconds: int) -> list:
         times, prices, volumes = zip(*bucket)
 
         candles.append({
-            "timestamp": bucket_time.isoformat(),
+            "timestamp": bucket_time,
             "open": prices[0],
             "high": max(prices),
             "low": min(prices),
@@ -67,3 +66,25 @@ async def get_candles(symbol: str, interval: str = "1m", source: str = "generate
         return candles
     else:
         raise ValueError(f"Unknown candle source: {source}")
+
+def find_missing_candle_gaps(timestamps: list[datetime], interval_sec: int) -> list[tuple[datetime, datetime]]:
+    if not timestamps:
+        return []
+
+    sorted_ts = sorted(timestamps)
+    expected_gap = timedelta(seconds=interval_sec)
+    gaps = []
+
+    for prev, curr in zip(sorted_ts, sorted_ts[1:]):
+        if curr - prev > expected_gap:
+            gaps.append((prev + expected_gap, curr))
+
+    return gaps
+
+def log_gaps(timestamps: list[datetime], interval_sec: int, source: str, symbol: str):
+    gaps = find_missing_candle_gaps(timestamps, interval_sec)
+    if gaps:
+        for start, end in gaps:
+            logging.warning(f"[{source.upper()}] Missing candles for {symbol}: {start} → {end}")
+    else:
+        logging.info(f"[{source.upper()}] No gaps detected for {symbol}")

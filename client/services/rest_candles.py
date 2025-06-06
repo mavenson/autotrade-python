@@ -1,8 +1,11 @@
 # client/services/rest_candles.py
 
 import aiohttp
+import logging
 from datetime import datetime, timedelta
+
 from storage.db_candles import save_candles_to_db
+from utils.time_utils import normalize_timestamp
 
 GRANULARITY_SECONDS = {
     "1m": 60,
@@ -20,17 +23,16 @@ async def fetch_rest_candles(symbol: str, interval: str, start_time=None, limit:
     if not granularity:
         raise ValueError(f"Unsupported interval: {interval}")
 
+
     if start_time:
         start = start_time - timedelta(seconds=granularity * 2)  # overlap 2 candles
     else:
-        start = datetime.utcnow() - timedelta(seconds=granularity * limit
-                                              )
-    end = datetime.utcnow()
-    start = end - timedelta(seconds=granularity * limit)
+        start = datetime.utcnow() - timedelta(seconds=granularity * limit)
 
+    end = datetime.utcnow()
     params = {
-        "start": start.isoformat(),
-        "end": end.isoformat(),
+        "start": start.isoformat(timespec="seconds") + "Z",
+        "end": end.isoformat(timespec="seconds") + "Z",
         "granularity": granularity
     }
 
@@ -41,19 +43,22 @@ async def fetch_rest_candles(symbol: str, interval: str, start_time=None, limit:
             if resp.status != 200:
                 raise Exception(f"REST candle request failed: {resp.status}")
             raw = await resp.json()
-
-    # Coinbase returns: [ time, low, high, open, close, volume ]
-    candles = [
-        {
-            "timestamp": datetime.utcfromtimestamp(row[0]).isoformat() + "Z",
+    
+    # Validate the format
+    candles = []
+    for row in sorted(raw, key=lambda x: x[0]):
+        if not isinstance(row, list) or len(row) != 6:
+            logging.warning(f"Skipping malformed row for {symbol}: {row}")
+            continue
+        candles.append({
+            "timestamp": normalize_timestamp(datetime.utcfromtimestamp(row[0]), granularity).isoformat() + "Z",
             "open": row[3],
             "high": row[2],
             "low": row[1],
             "close": row[4],
             "volume": row[5]
-        }
-        for row in sorted(raw, key=lambda x: x[0])  # Sort by time ascending
-    ]
+        })
 
     await save_candles_to_db(symbol, interval, source="rest", candles=candles)
     return candles
+
