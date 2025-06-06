@@ -1,3 +1,4 @@
+version: "3.9"
 
 services:
   data-ingestion:
@@ -12,6 +13,7 @@ services:
       - db
     volumes:
       - .:/app
+    env_file: .env
 
   db:
     image: postgres:15-alpine
@@ -26,11 +28,10 @@ services:
       - ./storage/sql/schema.sql:/docker-entrypoint-initdb.d/schema.sql
 
   client-menu:
-    container_name: client-menu
     build:
       context: .
-      dockerfile: Dockerfile.client
-    command: ["python", "client/client_menu.py"]
+    container_name: client-menu
+    command: python client/client_menu.py
     depends_on:
       - db
     volumes:
@@ -39,26 +40,31 @@ services:
     tty: true
     environment:
       - DATABASE_URL=${DATABASE_URL}
+    env_file: .env
 
   rest-sync:
     build:
       context: .
-      dockerfile: Dockerfile
-    command: ["python", "services/rest_sync.py"]
+    container_name: rest-sync
+    command: python services/rest_sync.py
     depends_on:
       - db
-    env_file: .env
+    volumes:
+      - .:/app
     restart: unless-stopped
+    env_file: .env
 
   generated-sync:
     build:
       context: .
-      dockerfile: Dockerfile
-    command: ["python", "services/gen_candle_sync.py"]
+    container_name: generated-sync
+    command: python services/gen_candle_sync.py
     depends_on:
       - db
-    env_file: .env
+    volumes:
+      - .:/app
     restart: unless-stopped
+    env_file: .env
 
 volumes:
   pgdata:

@@ -16,33 +16,22 @@ class Database:
         self.pool = None
 
     async def connect(self):
-        try:
-            self.pool = await asyncpg.create_pool(dsn=self.dsn, min_size=1, max_size=5)
-            logger.info("Connected to the PostgreSQL database.")
-        except Exception as e:
-            logger.exception("Database connection failed.")
-            raise
+        self.pool = await asyncpg.create_pool(dsn=self.dsn, min_size=1, max_size=5)
 
     async def close(self):
         if self.pool:
             await self.pool.close()
-            logger.info("Database connection pool closed.")
 
-    
-
-    async def insert_trade(self, symbol: str, price: float, volume: float, timestamp: str | datetime, raw_message: dict = None):
-        if isinstance(timestamp, str):
-            timestamp = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))  # Converts 'Z' to UTC-aware datetime
-            if raw_message is not None and isinstance(raw_message, dict):
-                raw_message = json.dumps(raw_message)
+    async def insert_trade(self, symbol, price, volume, timestamp, raw_message=None):
         query = """
         INSERT INTO trades (symbol, price, volume, timestamp, raw_message)
         VALUES ($1, $2, $3, $4, $5)
         """
-        try:
-            async with self.pool.acquire() as conn:
-                await conn.execute(query, symbol, price, volume, timestamp, raw_message)
-        except Exception as e:
-            logger.exception(f"Failed to insert trade for {symbol} at {price}.")
-            raise
+        async with self.pool.acquire() as conn:
+            await conn.execute(query, symbol, price, volume, timestamp, raw_message)
 
+    @classmethod
+    async def create(cls):
+        instance = cls()
+        await instance.connect()
+        return instance

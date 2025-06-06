@@ -1,0 +1,10 @@
+{
+  "active_exchange": "coinbase",
+  "supported_exchanges": ["coinbase"],
+  "exchanges": {
+    "coinbase": {
+      "ws_url": "wss://ws-feed.exchange.coinbase.com",
+      "symbols": ["BTC-USD"]
+    }
+  }
+}
