@@ -1,4 +1,5 @@
 # services/gen_candle_sync.py
+# Periodically fetches trades from DB, generates synthetic candles using build_candles, and stores them in DB.
 
 import json
 import asyncio
@@ -13,11 +14,7 @@ from dateutil import parser as dtparser
 with open("config/streams.json") as f:
     config = json.load(f)
 SYMBOLS = config["exchanges"][config["active_exchange"]]["symbols"]
-INTERVALS = {
-    "1m": 60,
-    "5m": 300,
-}
-SLEEP_SECONDS = 60
+INTERVALS = {interval: 60 for interval in EXCHANGE_SETTINGS.get("intervals", ["1m"])}
 
 logging.basicConfig(level=logging.INFO)
 
@@ -27,13 +24,11 @@ async def sync_once():
         for interval, interval_sec in INTERVALS.items():
             try:
                 latest = await get_latest_candle_timestamp(symbol, interval, source="generated")
-                if latest:
-                    start_time = latest - timedelta(seconds=interval_sec * 2)
-                else:
-                    start_time = None
+                start_time = latest - timedelta(seconds=interval_sec * 2) if latest else None
 
                 trades = await fetch_all_trades(symbol, since=start_time)
                 candles = build_candles(trades, interval_sec)
+
                 await save_candles_to_db(symbol, interval, "generated", candles)
 
                 timestamps = [c["timestamp"] for c in candles]
@@ -47,10 +42,6 @@ async def sync_once():
 
 
 
-async def sync_loop():
-    while True:
-        await sync_once()
-        await asyncio.sleep(SLEEP_SECONDS)
 
 if __name__ == "__main__":
-    asyncio.run(sync_loop())
+    asyncio.run(sync_once())

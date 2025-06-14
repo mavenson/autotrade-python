@@ -11,6 +11,7 @@ from storage.db_candles import load_candles_from_db, save_candles_to_db
 from utils.time_utils import floor_timestamp_to_interval
 
 
+# Converts raw trade data into OHLCV candles bucketed by interval_seconds.
 def build_candles(trades: list, interval_seconds: int) -> list:
     """Aggregate trades into OHLCV candles based on interval in seconds."""
     buckets = defaultdict(list)
@@ -36,8 +37,9 @@ def build_candles(trades: list, interval_seconds: int) -> list:
 
     return candles
 
+# Loads candles from the DB if available; otherwise generates them (from trades or REST).
 async def get_candles(symbol: str, interval: str = "1m", source: str = "generated"):
-    #S Step 1: Try loading from DB
+    # Step 1: Try loading from DB
     candles = await load_candles_from_db(symbol, interval, source)
     if candles:
         return candles
@@ -67,6 +69,7 @@ async def get_candles(symbol: str, interval: str = "1m", source: str = "generate
     else:
         raise ValueError(f"Unknown candle source: {source}")
 
+# Detects if there are gaps in a sorted list of timestamps.
 def find_missing_candle_gaps(timestamps: list[datetime], interval_sec: int) -> list[tuple[datetime, datetime]]:
     if not timestamps:
         return []
@@ -81,6 +84,7 @@ def find_missing_candle_gaps(timestamps: list[datetime], interval_sec: int) -> l
 
     return gaps
 
+# Calls find_missing_candle_gaps() and logs human-readable messages.
 def log_gaps(timestamps: list[datetime], interval_sec: int, source: str, symbol: str):
     gaps = find_missing_candle_gaps(timestamps, interval_sec)
     if gaps:

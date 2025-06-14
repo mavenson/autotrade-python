@@ -1,4 +1,5 @@
 # services/rest_sync.py
+#Periodically fetches recent candles from a REST API (e.g. Coinbase), normalizes them, stores them in DB.
 
 import json
 import asyncio
@@ -19,9 +20,16 @@ EXCHANGE_SETTINGS = STREAM_CONFIG["exchanges"][ACTIVE_EXCHANGE]
 SYMBOLS = EXCHANGE_SETTINGS.get("symbols", [])
 INTERVALS = EXCHANGE_SETTINGS.get("intervals", ["1m"])
 
-SLEEP_SECONDS = 60  # how often to run
+GRANULARITY_SECONDS = {
+    "1m": 60,
+    "5m": 300,
+    "15m": 900,
+    "1h": 3600,
+    "1d": 86400,
+}
 
 logging.basicConfig(level=logging.INFO)
+
 
 async def sync_once():
     for symbol in SYMBOLS:
@@ -29,15 +37,12 @@ async def sync_once():
             try:
                 logging.info(f"Pulling REST candles: {symbol} {interval}")
                 latest = await get_latest_candle_timestamp(symbol, interval, source="rest")
-                
-                if latest:
-                    interval_sec = 60 if interval == "1m" else 300
-                    start_time = latest - timedelta(seconds=interval_sec)
-                else:
-                    start_time = None
 
-                candles = await fetch_rest_candles(symbol, interval, start_time=latest)
-                
+                interval_sec = GRANULARITY_SECONDS.get(interval, 60)
+                start_time = latest - timedelta(seconds=interval_sec) if latest else None
+
+                candles = await fetch_rest_candles(symbol, interval, start_time=start_time)
+
                 if not candles:
                     logging.info(f"No new candles for {symbol} ({interval})")
                     continue
@@ -45,19 +50,13 @@ async def sync_once():
                 await save_candles_to_db(symbol, interval, source="rest", candles=candles)
 
                 timestamps = [dtparser.isoparse(c["timestamp"]) for c in candles]
-                interval_sec = 60 if interval == "1m" else 300
                 log_gaps(timestamps, interval_sec, source="rest", symbol=symbol)
-                
+
                 logging.info(f"Saved {len(candles)} candles for {symbol} ({interval})")
-                await asyncio.sleep(0.5) # throttle API calls
+                await asyncio.sleep(0.5)  # throttle API calls
 
             except Exception as e:
                 logging.error(f"Failed to sync {symbol} {interval}: {e}")
 
-async def sync_loop():
-    while True:
-        await sync_once()
-        await asyncio.sleep(SLEEP_SECONDS)
-
 if __name__ == "__main__":
-    asyncio.run(sync_loop())
+    asyncio.run(sync_once())

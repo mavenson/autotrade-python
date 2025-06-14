@@ -4,6 +4,8 @@ import asyncpg
 import os
 from datetime import datetime
 
+
+# Inserts new candles into PostgreSQL with deduplication (via ON CONFLICT DO NOTHING).
 async def save_candles_to_db(symbol: str, interval: str, source: str, candles: list[dict]):
     conn = await asyncpg.connect(os.getenv("DATABASE_URL"))
     try:
@@ -25,6 +27,7 @@ async def save_candles_to_db(symbol: str, interval: str, source: str, candles: l
         await conn.close()
 
 
+# Loads candles from PostgreSQL for a given symbol/interval/source, sorted ascending by timestamp.
 async def load_candles_from_db(symbol: str, interval: str, source: str):
     conn = await asyncpg.connect(os.getenv("DATABASE_URL"))
     try:

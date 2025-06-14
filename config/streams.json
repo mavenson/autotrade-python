@@ -4,7 +4,8 @@
   "exchanges": {
     "coinbase": {
       "ws_url": "wss://ws-feed.exchange.coinbase.com",
-      "symbols": ["BTC-USD"]
+      "symbols": ["BTC-USD"],
+      "intervals": ["1m"]
     }
   }
 }
