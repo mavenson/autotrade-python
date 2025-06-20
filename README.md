@@ -5,34 +5,28 @@ A modular cryptocurrency trading system for learning, simulation, and (eventuall
 ## 🚀 Features
 
 - Real-time trade ingestion via WebSocket (Coinbase)
+- Candle generation from raw trades
+- REST fallback (Coinbase Pro) for candle gap filling
 - Asynchronous PostgreSQL storage
-- Interactive CLI client for backtesting
-- Moving average crossover strategy (with parameter tuning)
-- Modular backtest engine and portfolio simulator
-- Dockerized for reproducibility and separation of concerns
+- Interactive CLI for backtesting
+- Moving average crossover strategy
+- Full historical candle backfill support
+- Cron jobs for routine syncing and gap auditing
+- Unit tests for core components (pytest)
+- Dockerized for modularity and reproducibility
 
 ## 📁 Project Structure
 
 ```
 autotrade-python/
-├── backtest/           # Strategy + simulation logic
-│   ├── strategy.py
-│   ├── portfolio.py
-│   └── run_backtest.py
-├── client/             # Terminal menu + query tools
-│   ├── client_menu.py
-│   └── services/
-│       └── queries.py
-├── ingestion/          # Live trade data stream
-│   └── trade_stream.py
-├── storage/            # Database write logic (ingestion)
-│   └── db_api.py
-├── storage/sql/        # SQL schema
-│   └── schema.sql
-├── .env                # DB credentials (not committed)
-├── Dockerfile          # Main app container
-├── Dockerfile.client   # CLI menu container
-├── docker-compose.yml
+├── backtest/           # Strategy and simulation logic
+├── client/             # CLI tools and menu interface
+├── ingestion/          # Live trade data streams (WebSocket)
+├── services/           # Candle sync, retention, audits
+├── storage/            # Database and schema logic
+├── tests/              # Unit tests (pytest)
+├── logs/               # Cron job and sync logs
+├── docker-compose.yml  # Service orchestration
 └── README.md
 ```
 
@@ -43,10 +37,10 @@ autotrade-python/
 ```bash
 git clone https://github.com/mavenson/autotrade-python.git
 cd autotrade-python
-cp .env.example .env  # Add credentials
+cp .env.example .env  # Then edit DB credentials
 ```
 
-Edit `.env` to match:
+Example `.env`:
 
 ```env
 POSTGRES_USER=postgres
@@ -55,39 +49,91 @@ POSTGRES_DB=autotrade
 DATABASE_URL=postgresql://postgres:securepass@db:5432/autotrade
 ```
 
-### 2. Build and run the ingestion service
+### 2. Build and run the services
 
 ```bash
-docker-compose up -d --build
+docker compose up -d --build
 ```
 
 This starts:
 - `trading-db` (PostgreSQL)
 - `data-ingestion` (WebSocket collector)
+- `client-menu` (CLI tool)
 
-### 3. Use the backtesting client
+### 3. Use the client menu
 
 ```bash
-docker-compose build client-menu
-docker-compose run --rm client-menu
+docker compose run --rm client-menu
 ```
 
-Menu options include:
-- Run backtest with custom parameters
-- View trade stats
-- Check available date ranges
+Menu options:
+- Backtest strategy (moving average)
+- View available trade/candle ranges
+- Show stats or export results
+
+---
 
 ## 🧭 Roadmap
 
-- [x] Ingestion + storage
-- [x] Client menu interface
-- [x] Backtester with parameter input
-- [ ] Fee structure simulation
-- [ ] Order book model
-- [ ] Multi-exchange support (arbitrage)
-- [ ] Machine learning parameter tuning
-- [ ] Tax + compliance tracker
-- [ ] Live execution engine
+### ✅ Phase 1: Reliable Data & Backtest Core (BTC-USD Only)
+
+- [x] WebSocket ingestion + trade retention
+- [x] Generate candles from trades (1m)
+- [x] REST fallback/supplemental candles
+- [x] Timestamp-normalized candles (REST & generated)
+- [x] Daily gap detection audit
+- [x] Cron-based syncing for candles
+- [x] Full historical candle regeneration
+- [x] Unit tests (REST sync, edge cases)
+- [x] CLI client for backtesting
+- 📌 **Status:** Complete & tagged for `v0.1`
+
+---
+
+### 🚧 Phase 2: Expand Strategy & UX
+
+- [ ] Add more strategies (momentum, breakout, etc.)
+- [ ] CLI strategy/interval selection
+- [ ] Visualize candles & PnL (Textual/matplotlib)
+- [ ] Save backtest results for later reuse
+- [ ] Improve portfolio & PnL simulation
+
+---
+
+### 🧱 Phase 3: Scaling & Resilience
+
+- [ ] Ingest multiple symbols
+- [ ] Support Kraken or Binance ingestion
+- [ ] Redis queue for buffering messages
+- [ ] Routine database backups
+- [ ] Monitoring dashboard for uptime and data health
+
+---
+
+### 🧠 Phase 4: Execution Engine & Simulation
+
+- [ ] Simulated order book for realistic execution
+- [ ] Add latency/slippage/fee modeling
+- [ ] Live execution preview
+- [ ] Optional paper trading mode
+
+---
+
+### 🔐 Phase 5: Production Hardening
+
+- [ ] Live strategy execution (with safeguards)
+- [ ] Autoscaling/failover-ready ingestion
+- [ ] Secrets management & environment separation
+- [ ] Full integration test suite
+
+---
+
+## 🔁 Cron Jobs
+
+- `rest_sync.py`: Pull REST candles every 5 minutes
+- `gen_candle_sync.py`: Build trade-based candles every 5 minutes
+- `gap_audit.py`: Daily gap inspection (2:30 AM UTC)
+- `retention_cleaner.py`: Daily cleanup of old trades
 
 ## ⚠️ Disclaimer
 
