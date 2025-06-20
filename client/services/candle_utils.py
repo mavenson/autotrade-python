@@ -11,13 +11,17 @@ from storage.db_candles import load_candles_from_db, save_candles_to_db
 from utils.time_utils import floor_timestamp_to_interval
 
 
+async def save_generated_candles(symbol, interval, candles):
+    await save_candles_to_db(symbol, interval, source="generated", candles=candles)
+
+
 # Converts raw trade data into OHLCV candles bucketed by interval_seconds.
 def build_candles(trades: list, interval_seconds: int) -> list:
     """Aggregate trades into OHLCV candles based on interval in seconds."""
     buckets = defaultdict(list)
 
     for trade in trades:
-        ts = dtparser.isoparse(trade["timestamp"])
+        ts = dtparser.isoparse(trade["timestamp"].isoformat() if isinstance(trade["timestamp"], datetime) else trade["timestamp"])
         bucket_start = floor_timestamp_to_interval(ts, interval_seconds)
         buckets[bucket_start].append((ts, float(trade["price"]), float(trade["volume"])))
 

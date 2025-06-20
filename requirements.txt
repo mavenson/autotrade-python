@@ -1,5 +1,7 @@
 aiohttp
+aioresponses
 asyncpg
 python-dotenv
 pytest
+pytest-asyncio
 python-dateutil

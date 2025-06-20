@@ -27,6 +27,7 @@ async def handle_trade_message(msg: dict, db: Database):
             timestamp=ts,
             raw_message=json.dumps(msg)
         )
+        logger.info(f"Stored trade: {trade}")
     except Exception as e:
         logger.warning(f"Failed to handle trade message: {e}")
 

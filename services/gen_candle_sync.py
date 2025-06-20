@@ -1,47 +1,103 @@
 # services/gen_candle_sync.py
-# Periodically fetches trades from DB, generates synthetic candles using build_candles, and stores them in DB.
 
-import json
+import os
+import sys
 import asyncio
 import logging
-from client.services.queries import fetch_all_trades
-from client.services.candle_utils import build_candles, log_gaps
-from storage.db_candles import save_candles_to_db, get_latest_candle_timestamp
-from datetime import timedelta
-from dateutil import parser as dtparser
+from datetime import datetime, timedelta
+import argparse
 
+from storage.db_api import Database
+from client.services.candle_utils import build_candles, save_generated_candles
 
-with open("config/streams.json") as f:
-    config = json.load(f)
-SYMBOLS = config["exchanges"][config["active_exchange"]]["symbols"]
-INTERVALS = {interval: 60 for interval in EXCHANGE_SETTINGS.get("intervals", ["1m"])}
+SYMBOL = os.getenv("SYMBOL", "BTC-USD")
+INTERVAL = os.getenv("INTERVAL", "1m")
+INTERVAL_SEC = 60
 
 logging.basicConfig(level=logging.INFO)
 
+async def ensure_indexes(conn):
+    await conn.execute("CREATE INDEX IF NOT EXISTS idx_trades_symbol ON trades(symbol)")
+    await conn.execute("CREATE INDEX IF NOT EXISTS idx_trades_timestamp ON trades(timestamp)")
 
-async def sync_once():
-    for symbol in SYMBOLS:
-        for interval, interval_sec in INTERVALS.items():
-            try:
-                latest = await get_latest_candle_timestamp(symbol, interval, source="generated")
-                start_time = latest - timedelta(seconds=interval_sec * 2) if latest else None
+async def delete_existing_candles(conn):
+    logging.info(f"[FULL] Clearing existing generated candles for {SYMBOL}")
+    await conn.execute("""
+        DELETE FROM candles
+        WHERE symbol = $1 AND interval = $2 AND source = 'generated'
+    """, SYMBOL, INTERVAL)
 
-                trades = await fetch_all_trades(symbol, since=start_time)
-                candles = build_candles(trades, interval_sec)
+async def get_trade_time_bounds(conn):
+    result = await conn.fetchrow("""
+        SELECT MIN(timestamp) AS start, MAX(timestamp) AS end
+        FROM trades
+        WHERE symbol = $1
+    """, SYMBOL)
+    return result['start'], result['end']
 
-                await save_candles_to_db(symbol, interval, "generated", candles)
+async def sync_hour(conn, start_time, end_time):
+    query = """
+        SELECT * FROM trades
+        WHERE symbol = $1 AND timestamp >= $2 AND timestamp < $3
+        ORDER BY timestamp
+    """
+    rows = await conn.fetch(query, SYMBOL, start_time, end_time)
+    logging.info(f"[{start_time.isoformat()}] Retrieved {len(rows)} trades")
+    candles = build_candles(rows, INTERVAL_SEC)
+    await save_generated_candles(SYMBOL, INTERVAL, candles)
+    logging.info(f"[{start_time.isoformat()}] Saved {len(candles)} candles")
 
-                timestamps = [c["timestamp"] for c in candles]
-                log_gaps(timestamps, interval_sec, source="generated", symbol=symbol)
+async def run_full_sync(db, clean=False):
+    async with db.pool.acquire() as conn:
+        await ensure_indexes(conn)
+        if clean:
+            await delete_existing_candles(conn)
+        start, end = await get_trade_time_bounds(conn)
+        if not start or not end:
+            logging.warning("No trades found to generate candles.")
+            return
 
+        curr = start.replace(minute=0, second=0, microsecond=0)
+        while curr < end:
+            await sync_hour(conn, curr, curr + timedelta(hours=1))
+            curr += timedelta(hours=1)
 
-                logging.info(f"Saved {len(candles)} generated candles for {symbol} ({interval})")
+async def run_recent_sync(db):
+    async with db.pool.acquire() as conn:
+        await ensure_indexes(conn)
+        lookback = datetime.utcnow() - timedelta(minutes=5)
+        cutoff = datetime.utcnow().replace(second=0, microsecond=0)
 
-            except Exception as e:
-                logging.error(f"Failed to build candles for {symbol} {interval}: {e}")
+        query = """
+            SELECT * FROM trades
+            WHERE symbol = $1 AND timestamp >= $2 AND timestamp < $3
+            ORDER BY timestamp
+        """
+        rows = await conn.fetch(query, SYMBOL, lookback, cutoff)
 
+        logging.info(f"Building generated candles: {SYMBOL} {INTERVAL}")
+        if not rows:
+            logging.info("No complete trades found for recent sync. Skipping.")
+            return
 
+        candles = build_candles(rows, INTERVAL_SEC)
+        await save_generated_candles(SYMBOL, INTERVAL, candles)
+        logging.info(f"Saved {len(candles)} candles")
 
+async def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--full", action="store_true", help="Generate candles from all trades (historical)")
+    parser.add_argument("--clean", action="store_true", help="Clear existing generated candles first")
+    args = parser.parse_args()
+
+    db = await Database.create()
+    try:
+        if args.full:
+            await run_full_sync(db, clean=args.clean)
+        else:
+            await run_recent_sync(db)
+    finally:
+        await db.close()
 
 if __name__ == "__main__":
-    asyncio.run(sync_once())
+    asyncio.run(main())
