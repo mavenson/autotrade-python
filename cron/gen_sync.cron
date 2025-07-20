@@ -1,0 +1,1 @@
+*/5 * * * * python /app/services/gen_candle_sync.py >> /var/log/gen_sync.log 2>&1

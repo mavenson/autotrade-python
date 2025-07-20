@@ -30,25 +30,31 @@ async def fetch_date_ranges():
     await conn.close()
     return rows
 
-async def fetch_all_trades(symbol: str, since: datetime.datetime = None):
+async def fetch_all_trades(symbol: str, since: datetime.datetime = None, exchange: str = None):
     conn = await asyncpg.connect(os.getenv("DATABASE_URL"))
     try:
+        base_query = """
+            SELECT symbol, price, volume, timestamp
+            FROM trades
+            WHERE symbol = $1
+        """
+        params = [symbol]
+
+        if exchange:
+            base_query += " AND exchange = $2"
+            params.append(exchange)
+
         if since:
-            rows = await conn.fetch("""
-                SELECT symbol, price, volume, timestamp
-                FROM trades
-                WHERE symbol = $1 AND timestamp >= $2
-                ORDER BY timestamp ASC
-            """, symbol, since)
-        else:
-            rows = await conn.fetch("""
-                SELECT symbol, price, volume, timestamp
-                FROM trades
-                WHERE symbol = $1
-                ORDER BY timestamp ASC
-            """, symbol)
+            base_query += f" AND timestamp >= ${len(params)+1}"
+            params.append(since)
+
+        base_query += " ORDER BY timestamp ASC"
+
+        rows = await conn.fetch(base_query, *params)
+
     finally:
         await conn.close()
+
     return [
         {
             "symbol": row["symbol"],

@@ -14,6 +14,8 @@ from utils.time_utils import floor_timestamp_to_interval
 async def save_generated_candles(symbol, interval, candles):
     await save_candles_to_db(symbol, interval, source="generated", candles=candles)
 
+async def save_rest_candles(symbol, interval, candles):
+    await save_candles_to_db(symbol, interval, source="rest", candles=candles)
 
 # Converts raw trade data into OHLCV candles bucketed by interval_seconds.
 def build_candles(trades: list, interval_seconds: int) -> list:
@@ -74,19 +76,41 @@ async def get_candles(symbol: str, interval: str = "1m", source: str = "generate
         raise ValueError(f"Unknown candle source: {source}")
 
 # Detects if there are gaps in a sorted list of timestamps.
-def find_missing_candle_gaps(timestamps: list[datetime], interval_sec: int) -> list[tuple[datetime, datetime]]:
+async def find_missing_candle_gaps(conn, symbol: str, interval: str, start: datetime, end: datetime, source: str = "rest", interval_sec: int = 60):
+    from datetime import timezone
+    start = start.replace(tzinfo=timezone.utc)
+    end = end.replace(tzinfo=timezone.utc)
+    result = await conn.fetch("""
+        SELECT timestamp FROM candles
+        WHERE symbol = $1 AND interval = $2 AND source = $3
+        AND timestamp >= $4 AND timestamp <= $5
+        ORDER BY timestamp
+    """, symbol, interval, source, start, end)
+
+    timestamps = [row["timestamp"] for row in result]
+
     if not timestamps:
-        return []
+        return [(start, end)]
 
     sorted_ts = sorted(timestamps)
     expected_gap = timedelta(seconds=interval_sec)
     gaps = []
 
+    # Check before first known candle
+    if sorted_ts[0] - start > expected_gap:
+        gaps.append((start, sorted_ts[0]))
+
+    # In between known candles
     for prev, curr in zip(sorted_ts, sorted_ts[1:]):
         if curr - prev > expected_gap:
             gaps.append((prev + expected_gap, curr))
 
+    # After last known candle
+    if end - sorted_ts[-1] > expected_gap:
+        gaps.append((sorted_ts[-1] + expected_gap, end))
+
     return gaps
+
 
 # Calls find_missing_candle_gaps() and logs human-readable messages.
 def log_gaps(timestamps: list[datetime], interval_sec: int, source: str, symbol: str):

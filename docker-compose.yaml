@@ -6,7 +6,8 @@ services:
     build:
       context: .
     container_name: data-ingestion
-    command: python main.py
+    # commendting out for supervisord usage
+    #command: python main.py
     restart: unless-stopped
     environment:
       - DATABASE_URL=${DATABASE_URL}
@@ -15,6 +16,20 @@ services:
       - db
     volumes:
       - .:/app
+    env_file: .env
+
+  binance-ingestion:
+    build:
+      context: .
+      dockerfile: Dockerfile.binance
+    container_name: binance-ingestion
+    restart: unless-stopped
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
     env_file: .env
 
   db:

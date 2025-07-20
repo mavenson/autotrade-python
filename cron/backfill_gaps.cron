@@ -1,0 +1,1 @@
+*/15 * * * * python services/backfill_gaps.py >> /var/log/backfill_gaps.log 2>&1

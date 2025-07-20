@@ -1,23 +1,17 @@
 # main.py
 
 import asyncio
-import json
 from storage.db_api import Database
+from ingestion.coinbase_stream import run_stream as run_coinbase
 
-with open("config/streams.json", "r") as f:
-    config = json.load(f)
 
-active_exchange = config["active_exchange"]
-
-if active_exchange == "coinbase":
-    from ingestion.coinbase_stream import run_stream
-else:
-    raise NotImplementedError(f"Exchange '{active_exchange}' not supported yet.")
+#        with open("config/streams.json", "r") as f:
+#            config = json.load(f)
 
 async def main():
     db = await Database.create()
     try:
-        await run_stream(db)
+        await run_coinbase(db)
     finally:
         await db.close()
 

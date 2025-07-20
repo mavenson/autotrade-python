@@ -1,0 +1,2 @@
+# Runs 15 minutes past every hour.
+15 * * * * python storage/retention_cleaner.py --exchange coinbase >> /var/log/coinbase_retention.log 2>&1

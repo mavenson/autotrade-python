@@ -22,13 +22,13 @@ class Database:
         if self.pool:
             await self.pool.close()
 
-    async def insert_trade(self, symbol, price, volume, timestamp, raw_message=None):
+    async def insert_trade(self, symbol, price, volume, timestamp, raw_message=None, exchange="coinbase"):
         query = """
-        INSERT INTO trades (symbol, price, volume, timestamp, raw_message)
-        VALUES ($1, $2, $3, $4, $5)
+        INSERT INTO trades (symbol, price, volume, timestamp, raw_message, exchange)
+        VALUES ($1, $2, $3, $4, $5, $6)
         """
         async with self.pool.acquire() as conn:
-            await conn.execute(query, symbol, price, volume, timestamp, raw_message)
+            await conn.execute(query, symbol, price, volume, timestamp, raw_message, exchange)
 
     @classmethod
     async def create(cls):

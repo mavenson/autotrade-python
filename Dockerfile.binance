@@ -1,0 +1,56 @@
+# Dockerfile.binance
+
+FROM python:3.11-slim
+
+#Set working directory
+WORKDIR /app
+
+#Set environment
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
+
+# Create a non-root user and group
+RUN addgroup --system appgroup && \
+    adduser --system --ingroup appgroup appuser && \
+    mkdir -p /app /var/log && \
+    chown -R appuser:appgroup /app /var/log
+
+# Install dependencies including supervisord
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    curl \
+    procps \
+    supervisor && \
+    mkdir -p /var/log/supervisor && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy requirements and install Python packages
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the entire app source code
+COPY . .
+
+# ✅ Add supercronic
+RUN curl -sLo /usr/local/bin/supercronic https://github.com/aptible/supercronic/releases/latest/download/supercronic-linux-amd64 \
+ && chmod +x /usr/local/bin/supercronic
+
+# Copy cron jobs into container
+COPY cron/binance_retention.cron /etc/cron.d/binance_retention.cron
+
+# Ensure the cron job file has proper permissions
+RUN chmod 0644 /etc/cron.d/binance_retention.cron
+
+# Add supervisord config
+COPY supervisord.binance.conf /etc/supervisord.conf
+
+# Set ownership for everything
+RUN chown -R appuser:appgroup /app /etc/supervisord.conf
+
+# Switch to non-root user
+USER appuser
+
+# Start supervisord
+CMD ["supervisord", "-c", "/etc/supervisord.conf"]
+

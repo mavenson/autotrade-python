@@ -1,11 +1,15 @@
 {
   "active_exchange": "coinbase",
-  "supported_exchanges": ["coinbase"],
+  "secondary_exchanges": ["binance"]
   "exchanges": {
     "coinbase": {
       "ws_url": "wss://ws-feed.exchange.coinbase.com",
       "symbols": ["BTC-USD"],
       "intervals": ["1m"]
+    },
+    "binance": {
+      "ws_url": "wss://stream.binance.com:9443/ws",
+      "symbol": ["BTCUSDT"]
     }
   }
 }

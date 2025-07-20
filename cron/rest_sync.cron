@@ -1,0 +1,1 @@
+*/5 * * * * python /app/services/rest_sync.py >> /var/log/rest_sync.log 2>&1

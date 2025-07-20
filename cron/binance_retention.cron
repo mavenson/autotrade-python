@@ -1,0 +1,2 @@
+#Runs at 3AM every day
+0 3 * * * python storage/retention_cleaner.py --exchange binance >> /var/log/binance_retention.log 2>&1

@@ -4,7 +4,8 @@ CREATE TABLE IF NOT EXISTS trades (
     price NUMERIC(18, 8) NOT NULL,
     volume NUMERIC(18, 8) NOT NULL,
     timestamp TIMESTAMPTZ NOT NULL,
-    raw_message JSONB  -- ✅ optional raw message storage
+    raw_message JSONB,  -- ✅ optional raw message storage
+    exchange TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS candles (
